@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
-from . import models, schemas
+from . import models
+from .. import schemas
 
 
 def create_user(db: Session, user: schemas.UserCreate) -> models.User:
@@ -13,6 +14,25 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
 
 def get_user(db: Session, user_id: str) -> models.User | None:
     return db.query(models.User).filter(models.User.id == user_id).first()
+
+
+def update_user(
+    db: Session, user_id: str, user_update: schemas.UserCreate
+) -> models.User | None:
+    """Update a user's details (excluding ID)."""
+    db_user = get_user(db, user_id)
+    if not db_user:
+        return None
+
+    # Update fields (ignore ID)
+    db_user.name = user_update.name
+    db_user.karma = user_update.karma
+    db_user.maxVolume = user_update.maxVolume
+    db_user.userType = user_update.userType
+
+    db.commit()
+    db.refresh(db_user)
+    return db_user
 
 
 def create_api_key(db: Session, api_key: schemas.ApiKeyCreate) -> models.ApiKey:
@@ -52,6 +72,22 @@ def get_item_variant(db: Session, item_variant_id: str) -> models.ItemVariant | 
     )
 
 
+def update_item_variant(
+    db: Session, item_variant_id: str, variant_update: schemas.ItemVariantCreate
+) -> models.ItemVariant | None:
+    """Update an item variant's details (excluding ID)."""
+    db_variant = get_item_variant(db, item_variant_id)
+    if not db_variant:
+        return None
+
+    db_variant.name = variant_update.name
+    db_variant.volume = variant_update.volume
+
+    db.commit()
+    db.refresh(db_variant)
+    return db_variant
+
+
 def create_pickup_point(
     db: Session, pickup_point: schemas.PickupPointCreate
 ) -> models.PickupPoint:
@@ -68,6 +104,22 @@ def get_pickup_point(db: Session, pickup_point_id: str) -> models.PickupPoint | 
         .filter(models.PickupPoint.id == pickup_point_id)
         .first()
     )
+
+
+def update_pickup_point(
+    db: Session, pickup_point_id: str, point_update: schemas.PickupPointCreate
+) -> models.PickupPoint | None:
+    """Update a pickup point's details (excluding ID)."""
+    db_point = get_pickup_point(db, pickup_point_id)
+    if not db_point:
+        return None
+
+    db_point.name = point_update.name
+    db_point.location = point_update.location
+
+    db.commit()
+    db.refresh(db_point)
+    return db_point
 
 
 def create_storage_point(
@@ -90,6 +142,23 @@ def get_storage_point(
     )
 
 
+def update_storage_point(
+    db: Session, storage_point_id: str, point_update: schemas.StoragePointCreate
+) -> models.StoragePoint | None:
+    """Update a storage point's details (excluding ID)."""
+    db_point = get_storage_point(db, storage_point_id)
+    if not db_point:
+        return None
+
+    db_point.name = point_update.name
+    db_point.maxVolume = point_update.maxVolume
+    db_point.location = point_update.location
+
+    db.commit()
+    db.refresh(db_point)
+    return db_point
+
+
 def create_drop_off_point(
     db: Session, drop_off_point: schemas.DropOffPointCreate
 ) -> models.DropOffPoint:
@@ -108,6 +177,22 @@ def get_drop_off_point(
         .filter(models.DropOffPoint.id == drop_off_point_id)
         .first()
     )
+
+
+def update_drop_off_point(
+    db: Session, drop_off_point_id: str, point_update: schemas.DropOffPointCreate
+) -> models.DropOffPoint | None:
+    """Update a drop-off point's details (excluding ID)."""
+    db_point = get_drop_off_point(db, drop_off_point_id)
+    if not db_point:
+        return None
+
+    db_point.name = point_update.name
+    db_point.location = point_update.location
+
+    db.commit()
+    db.refresh(db_point)
+    return db_point
 
 
 def create_items_at_pickup_point(
@@ -133,6 +218,24 @@ def get_items_at_pickup_point(
     )
 
 
+def update_items_at_pickup_point(
+    db: Session,
+    pickup_point_id: str,
+    item_variant_id: str,
+    quantity: int,
+) -> models.ItemsAtPickupPoint | None:
+    """Update the quantity of items at a pickup point."""
+    db_record = get_items_at_pickup_point(db, pickup_point_id, item_variant_id)
+    if not db_record:
+        return None
+
+    db_record.quantity = quantity
+
+    db.commit()
+    db.refresh(db_record)
+    return db_record
+
+
 def create_items_in_car(
     db: Session, record: schemas.ItemsInCarCreate
 ) -> models.ItemsInCar:
@@ -156,6 +259,24 @@ def get_items_in_car(
     )
 
 
+def update_items_in_car(
+    db: Session,
+    user_id: str,
+    item_variant_id: str,
+    quantity: int,
+) -> models.ItemsInCar | None:
+    """Update the quantity of items in a user's car."""
+    db_record = get_items_in_car(db, user_id, item_variant_id)
+    if not db_record:
+        return None
+
+    db_record.quantity = quantity
+
+    db.commit()
+    db.refresh(db_record)
+    return db_record
+
+
 def create_items_in_storage(
     db: Session, record: schemas.ItemsInStorageCreate
 ) -> models.ItemsInStorage:
@@ -177,3 +298,21 @@ def get_items_in_storage(
         )
         .first()
     )
+
+
+def update_items_in_storage(
+    db: Session,
+    storage_id: str,
+    item_variant_id: str,
+    quantity: int,
+) -> models.ItemsInStorage | None:
+    """Update the quantity of items in storage."""
+    db_record = get_items_in_storage(db, storage_id, item_variant_id)
+    if not db_record:
+        return None
+
+    db_record.quantity = quantity
+
+    db.commit()
+    db.refresh(db_record)
+    return db_record

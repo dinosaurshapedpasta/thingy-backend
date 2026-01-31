@@ -1,7 +1,7 @@
 from sqlalchemy import String, Integer, Float, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .db import Base
+from .config import Base
 
 
 class User(Base):
@@ -42,6 +42,7 @@ class StoragePoint(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    maxVolume: Mapped[float] = mapped_column(Float, nullable=False)
     location: Mapped[str] = mapped_column(String, nullable=False)
 
 

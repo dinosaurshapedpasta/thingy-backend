@@ -45,6 +45,7 @@ class PickupPointRead(PickupPointCreate):
 class StoragePointCreate(BaseModel):
     id: str
     name: str
+    maxVolume: float
     location: str
 
 
