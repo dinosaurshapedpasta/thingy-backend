@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from endpoints.user import router as user_router
 from endpoints.default import router as default_router
+from endpoints.storage import router as storage_router
 
 from . import schemas
 from .database import engine, get_db, crud, Base
@@ -22,5 +23,6 @@ app.add_middleware(
 
 app.include_router(user_router)
 app.include_router(default_router)
+app.include_router(storage_router)
 
 Base.metadata.create_all(bind=engine)
