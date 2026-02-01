@@ -1,14 +1,10 @@
-from app.database.config import SessionLocal
-from app.database.models import User
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
 from endpoints.user import router as user_router
 from endpoints.item import router as item_router
 from endpoints.pickup import router as pickup_router
 
-from . import schemas
-from .database import engine, get_db, crud, Base
+from .database import engine, Base
 
 app = FastAPI()
 
@@ -26,17 +22,3 @@ app.include_router(item_router)
 app.include_router(pickup_router)
 
 Base.metadata.create_all(bind=engine)
-
-# # Create user on first run
-# db = SessionLocal()
-# try:
-#     user_data = schemas.UserCreate(
-#         id="0",
-#         name="John Doe",
-#         karma=100,
-#         maxVolume=0.8,
-#         userType=1
-#     )
-#     crud.create_user(db, user_data)
-# finally:
-#     db.close()

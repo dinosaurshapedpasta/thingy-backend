@@ -42,6 +42,11 @@ class PickupPointRead(PickupPointCreate):
     model_config = {"from_attributes": True}
 
 
+class PickupRequest(BaseModel):
+    id: str
+    pickupPointID: str
+
+
 class StoragePointCreate(BaseModel):
     id: str
     name: str
@@ -91,3 +96,8 @@ class ItemsInStorageCreate(BaseModel):
 
 class ItemsInStorageRead(ItemsInStorageCreate):
     model_config = {"from_attributes": True}
+
+
+class StorageItemResponse(BaseModel):
+    id: str
+    quantity: int

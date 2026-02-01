@@ -17,7 +17,8 @@ class User(Base):
 class ApiKey(Base):
     __tablename__ = "apiKeys"
 
-    userID: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    userID: Mapped[str] = mapped_column(
+        ForeignKey("users.id"), primary_key=True)
     keyHash: Mapped[str] = mapped_column(String, primary_key=True)
 
 
@@ -37,6 +38,24 @@ class PickupPoint(Base):
     location: Mapped[str] = mapped_column(String, nullable=False)
 
 
+class PickupRequest(Base):
+    __tablename__ = "pickupRequests"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    pickupPointID: Mapped[str] = mapped_column(
+        ForeignKey("pickupPoints.id"), nullable=False)
+
+
+class PickupRequestResponses(Base):
+    __tablename__ = "pickupRequestResponses"
+
+    requestID: Mapped[str] = mapped_column(
+        ForeignKey("pickupRequests.id"), primary_key=True)
+    userID: Mapped[str] = mapped_column(
+        ForeignKey("users.id"), primary_key=True)
+    result: Mapped[int] = mapped_column(int, nullable=False)
+
+
 class StoragePoint(Base):
     __tablename__ = "storagePoints"
 
@@ -47,7 +66,7 @@ class StoragePoint(Base):
 
 
 class DropOffPoint(Base):
-    __tablename__ = "dropOffPoint"
+    __tablename__ = "dropOffPoints"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -69,7 +88,8 @@ class ItemsAtPickupPoint(Base):
 class ItemsInCar(Base):
     __tablename__ = "itemsInCar"
 
-    userID: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    userID: Mapped[str] = mapped_column(
+        ForeignKey("users.id"), primary_key=True)
     itemVariantID: Mapped[str] = mapped_column(
         ForeignKey("itemVariants.id"), primary_key=True
     )
