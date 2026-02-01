@@ -10,13 +10,14 @@ from app.auth import get_current_user as get_authenticated_user
 router = APIRouter(prefix="/pickuprequests", tags=["pickup"])
 
 
-@router.get("/")
+@router.get("/", response_model=List[schemas.PickupRequest])
 def get_pickup_requests(
     db: Session = Depends(get_db),
     current_user=Depends(get_authenticated_user),
 ):
     """Get active pickup requests."""
-    return crud.get_active_pickup_requests(db)
+    requests = crud.get_active_pickup_requests(db)
+    return [schemas.PickupRequest(id=r.id, pickupPointID=r.pickupPointID) for r in requests]
 
 
 @router.post("/")
