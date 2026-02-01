@@ -66,12 +66,13 @@ def get_pickup_request_responses(
 @router.post("/{id}/accept")
 def accept_pickup_request(
     id: str,
+    response_data: schemas.PickupRequestResponseCreate,
     db: Session = Depends(get_db),
     current_user=Depends(get_authenticated_user),
 ):
-    """Accept a pickup request. ONLY AVAILABLE TO VOLUNTEERS"""
+    """Accept a pickup request with optional GPS location. ONLY AVAILABLE TO VOLUNTEERS"""
     success = crud.create_pickup_request_response(
-        db, id, current_user.id, 1)
+        db, id, current_user.id, 1, response_data.location)
     if not success:
         raise HTTPException(status_code=404, detail="Pickup request not found")
 
@@ -86,7 +87,7 @@ def deny_pickup_request(
 ):
     """Deny a pickup request. ONLY AVAILABLE TO VOLUNTEERS"""
     success = crud.create_pickup_request_response(
-        db, id, current_user.id, 0)
+        db, id, current_user.id, 0, None)
     if not success:
         raise HTTPException(status_code=404, detail="Pickup request not found")
 

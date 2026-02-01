@@ -129,7 +129,7 @@ class AuctionManager:
                     "user_id": user.id,
                     "karma": user.karma,
                     "max_volume": user.maxVolume,
-                    "location": None  # TODO: Get GPS location from response
+                    "location": response.location  # GPS location from response
                 })
 
         # Calculate distance/time matrix
@@ -149,6 +149,8 @@ class AuctionManager:
         # Dispatch routes to volunteers
         await self._dispatch_routes(routes, db)
 
+        # Store results
+        auction_data["routes"] = routes
         auction_data["status"] = "completed"
         logger.info(f"Completed auction for pickup request {request_id}")
 
@@ -287,28 +289,59 @@ class AuctionManager:
         """
         Calculate optimal routes using the routing algorithm.
 
-        This is where the external routing algorithm is called.
+        For now, this selects the volunteer with the LOWEST cost (best match).
+        Lower cost = closer distance + higher karma + more capacity.
 
         Returns:
-            List of route assignments: [{"user_id": str, "route": List[str]}]
+            List of route assignments: [{"user_id": str, "cost": float, "route": List[str]}]
         """
         logger.info("Calculating optimal routes")
 
-        # TODO: Integrate with actual routing algorithm
-        # The routing algorithm should take:
-        # - adjacency_matrix: cost matrix
-        # - volunteers: list of volunteer data
-        # - pickup_point: pickup location
-        # - drop_off_points: list of delivery locations
+        if not volunteers or not adjacency_matrix:
+            logger.warning("No volunteers or empty adjacency matrix")
+            return []
 
-        # Placeholder: assign first volunteer to the pickup
-        if volunteers:
-            return [{
-                "user_id": volunteers[0]["user_id"],
-                "route": [pickup_point.id]  # In reality, this would include dropoff points
-            }]
+        # Find volunteer with minimum cost (best match)
+        # Each row in adjacency_matrix corresponds to one volunteer
+        min_cost = float('inf')
+        best_volunteer_idx = -1
 
-        return []
+        for idx, row in enumerate(adjacency_matrix):
+            # For single pickup, we just have one cost per volunteer
+            cost = row[0] if row else float('inf')
+
+            logger.info(
+                f"Volunteer {volunteers[idx]['user_id']} "
+                f"(karma: {volunteers[idx]['karma']}, "
+                f"capacity: {volunteers[idx]['max_volume']}L) "
+                f"-> Cost: {cost:.2f}"
+            )
+
+            if cost < min_cost:
+                min_cost = cost
+                best_volunteer_idx = idx
+
+        if best_volunteer_idx == -1:
+            logger.error("Could not find valid volunteer")
+            return []
+
+        selected_volunteer = volunteers[best_volunteer_idx]
+
+        logger.info(
+            f"✓ SELECTED: {selected_volunteer['user_id']} with cost {min_cost:.2f}"
+        )
+
+        # TODO: Integrate with actual routing algorithm for complex multi-pickup routes
+        # For now, return simple single-pickup route
+        return [{
+            "user_id": selected_volunteer["user_id"],
+            "cost": min_cost,
+            "route": [pickup_point.id],  # In reality, would include dropoff points
+            "volunteer_details": {
+                "karma": selected_volunteer["karma"],
+                "capacity": selected_volunteer["max_volume"]
+            }
+        }]
 
     async def _dispatch_routes(self, routes: List[dict], db: Session):
         """

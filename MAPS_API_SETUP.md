@@ -32,17 +32,42 @@ export OPENROUTE_API_KEY=your_api_key_here
 
 ### Test It
 
-```python
-# Test the API
+```bash
+# Test the API directly
 curl -X POST \
   'https://api.openrouteservice.org/v2/matrix/driving-car' \
   -H 'Authorization: YOUR_API_KEY' \
   -H 'Content-Type: application/json' \
   -d '{
-    "locations": [[8.681495,49.41461], [8.686507,49.41943]],
+    "locations": [[-0.1278,51.5074], [-0.0754,51.5055]],
     "metrics": ["duration"]
   }'
+
+# Expected response:
+# {
+#   "durations": [[0, 720], [720, 0]],  # 720 seconds = 12 minutes
+#   "metadata": {...}
+# }
 ```
+
+### Test Your Integration
+
+Run the test script:
+
+```bash
+# Set your API key
+export OPENROUTE_API_KEY=your_key_here
+
+# Run the test
+python test_auction.py
+```
+
+This will:
+1. Test the Maps API integration
+2. Create test volunteers with different karma/capacity
+3. Simulate a pickup request with responses
+4. Calculate travel times and adjacency matrix
+5. Show the routing results
 
 ### Location Format
 

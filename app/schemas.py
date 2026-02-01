@@ -101,3 +101,7 @@ class ItemsInStorageRead(ItemsInStorageCreate):
 class StorageItemResponse(BaseModel):
     id: str
     quantity: int
+
+
+class PickupRequestResponseCreate(BaseModel):
+    location: str | None = None

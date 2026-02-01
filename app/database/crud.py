@@ -158,10 +158,22 @@ def get_pickup_request_responses(
 
 
 def create_pickup_request_response(
-    db: Session, id: str, current_user_id: any, resp: int
+    db: Session, id: str, current_user_id: any, resp: int, location: str = None
 ) -> bool:
-    # TODO Alex
-    return False
+    """Create a pickup request response with optional GPS location."""
+    try:
+        db_response = models.PickupRequestResponses(
+            requestID=id,
+            userID=current_user_id,
+            result=resp,
+            location=location
+        )
+        db.add(db_response)
+        db.commit()
+        return True
+    except Exception:
+        db.rollback()
+        return False
 
 
 def create_storage_point(
