@@ -258,6 +258,16 @@ def get_items_at_pickup_point(
     )
 
 
+def get_all_items_at_pickup_point(
+    db: Session, pickup_point_id: str
+) -> list[models.ItemsAtPickupPoint]:
+    return (
+        db.query(models.ItemsAtPickupPoint)
+        .filter(models.ItemsAtPickupPoint.pickupPointID == pickup_point_id)
+        .all()
+    )
+
+
 def update_items_at_pickup_point(
     db: Session,
     pickup_point_id: str,
