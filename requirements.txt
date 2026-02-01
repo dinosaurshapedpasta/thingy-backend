@@ -4,6 +4,7 @@ anyio==4.12.1
 click==8.3.1
 fastapi==0.128.0
 fastapi[standard]
+ortools
 h11==0.16.0
 idna==3.11
 pydantic==2.12.5

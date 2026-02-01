@@ -1,0 +1,227 @@
+"""
+Test script to verify the full routing flow:
+1. Create auction with volunteer bids
+2. Get routing input
+3. Run VSP algorithm
+4. Apply results to database
+
+Run with: python test_full_routing.py
+"""
+
+import asyncio
+import uuid
+from datetime import datetime, timedelta
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+from app.database.models import Base, User, DropOffPoint, PickupPoint, PickupRequest, ItemVariant, ItemsAtPickupPoint, Auction, AuctionBid, ItemsInCar
+from app.services.routing_service import execute_routing, get_volunteer_car_contents
+from app.vsp import solve_routing
+from app import schemas
+
+
+# Setup test database
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test_full_routing.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def setup_test_data(db):
+    """Create test data for routing."""
+    
+    # Create volunteers
+    volunteers = [
+        User(id="vol-1", name="Alice", karma=80, maxVolume=35, userType=0),
+        User(id="vol-2", name="Bob", karma=90, maxVolume=25, userType=0),
+        User(id="vol-3", name="Charlie", karma=100, maxVolume=40, userType=0),
+    ]
+    for v in volunteers:
+        db.add(v)
+    
+    # Create dropoff points (10 points in London area)
+    dropoff_locations = [
+        ("51.5074,-0.1278", "Westminster"),
+        ("51.5155,-0.1419", "Oxford Circus"),
+        ("51.5033,-0.1195", "London Eye"),
+        ("51.5194,-0.1270", "Kings Cross"),
+        ("51.4975,-0.1357", "Victoria"),
+        ("51.5136,-0.0889", "Bank"),
+        ("51.5225,-0.1543", "Baker Street"),
+        ("51.5010,-0.1246", "Waterloo"),
+        ("51.5145,-0.0831", "Liverpool Street"),
+        ("51.5030,-0.1128", "Southwark"),
+    ]
+    
+    for i, (loc, name) in enumerate(dropoff_locations):
+        dp = DropOffPoint(id=f"drop-{i+1}", name=name, location=loc)
+        db.add(dp)
+    
+    # Create pickup point
+    pickup = PickupPoint(id="pickup-1", name="Charity Warehouse", location="51.5200,-0.1000")
+    db.add(pickup)
+    
+    # Create 5 item types
+    items = [
+        ItemVariant(id="item-1", name="Canned Food", volume=5.0),
+        ItemVariant(id="item-2", name="Clothing", volume=4.0),
+        ItemVariant(id="item-3", name="Toiletries", volume=3.0),
+        ItemVariant(id="item-4", name="Bedding", volume=8.0),
+        ItemVariant(id="item-5", name="Kitchen Items", volume=2.0),
+    ]
+    for item in items:
+        db.add(item)
+    
+    # Add items to pickup point
+    items_at_pickup = [
+        ItemsAtPickupPoint(pickupPointID="pickup-1", itemVariantID="item-1", quantity=2),
+        ItemsAtPickupPoint(pickupPointID="pickup-1", itemVariantID="item-2", quantity=3),
+        ItemsAtPickupPoint(pickupPointID="pickup-1", itemVariantID="item-3", quantity=2),
+        ItemsAtPickupPoint(pickupPointID="pickup-1", itemVariantID="item-4", quantity=1),
+        ItemsAtPickupPoint(pickupPointID="pickup-1", itemVariantID="item-5", quantity=2),
+    ]
+    for iap in items_at_pickup:
+        db.add(iap)
+    
+    # Create pickup request
+    pickup_request = PickupRequest(id="request-1", pickupPointID="pickup-1")
+    db.add(pickup_request)
+    
+    db.commit()
+    return volunteers
+
+
+def create_auction_with_bids(db, pickup_request_id: str, volunteer_bids: list):
+    """Create an auction and add volunteer bids."""
+    
+    auction = Auction(
+        id=f"auction-{uuid.uuid4().hex[:8]}",
+        pickupRequestID=pickup_request_id,
+        status="active",
+        createdAt=datetime.utcnow(),
+        expiresAt=datetime.utcnow() + timedelta(seconds=60)
+    )
+    db.add(auction)
+    db.commit()
+    
+    for vol_id, lat, lon in volunteer_bids:
+        bid = AuctionBid(
+            auctionID=auction.id,
+            userID=vol_id,
+            accepted=True,
+            latitude=lat,
+            longitude=lon,
+            estimatedTime=10.0,
+            score=0.5,
+            createdAt=datetime.utcnow()
+        )
+        db.add(bid)
+    
+    db.commit()
+    return auction
+
+
+async def test_full_routing_flow():
+    """Test the complete routing flow."""
+    
+    # Reset database
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    
+    db = TestingSessionLocal()
+    
+    try:
+        print("=" * 60)
+        print("FULL ROUTING FLOW TEST")
+        print("=" * 60)
+        
+        # Step 1: Setup data
+        print("\n1. Setting up test data...")
+        volunteers = setup_test_data(db)
+        print(f"   Created {len(volunteers)} volunteers")
+        
+        # Step 2: Create auction with bids
+        print("\n2. Creating auction with volunteer bids...")
+        volunteer_bids = [
+            ("vol-1", 51.5100, -0.1300),  # Near Westminster
+            ("vol-2", 51.5180, -0.1400),  # Near Oxford Circus
+            ("vol-3", 51.5050, -0.1200),  # Near London Eye
+        ]
+        auction = create_auction_with_bids(db, "request-1", volunteer_bids)
+        print(f"   Auction ID: {auction.id}")
+        
+        # Step 3: Check car contents before routing
+        print("\n3. Car contents BEFORE routing:")
+        for vol in volunteers:
+            contents = get_volunteer_car_contents(db, vol.id)
+            print(f"   {vol.name} ({vol.id}): {contents if contents else 'Empty'}")
+        
+        # Step 4: Execute routing
+        print("\n4. Executing routing algorithm...")
+        result = await execute_routing(db, auction.id)
+        
+        if not result:
+            print("   ERROR: Routing failed!")
+            return False
+        
+        print("   Routing completed successfully!")
+        
+        # Step 5: Display routes
+        print("\n5. Computed Routes:")
+        print("-" * 60)
+        for i, route in enumerate(result["routes"]):
+            print(f"\n   Route {i+1}:")
+            for j, (location, load) in enumerate(route):
+                if j == 0:
+                    print(f"     START: {location} (load: {load})")
+                elif j == len(route) - 1:
+                    print(f"     END:   {location} (remaining: {load})")
+                else:
+                    print(f"     STOP:  {location} (load after: {load})")
+        
+        # Step 6: Display changes
+        print("\n6. Database Changes:")
+        print("-" * 60)
+        
+        print("\n   Volunteers updated:")
+        for update in result["changes"]["volunteers_updated"]:
+            print(f"     - {update['volunteer_id']}: final load = {update['final_load']}")
+        
+        print("\n   Deliveries made:")
+        for delivery in result["changes"]["deliveries"]:
+            print(f"     - {delivery['volunteer_id']} dropped {delivery['quantity']} at {delivery['dropoff_id']}")
+        
+        # Step 7: Check car contents after routing
+        print("\n7. Car contents AFTER routing:")
+        for vol in volunteers:
+            contents = get_volunteer_car_contents(db, vol.id)
+            print(f"   {vol.name} ({vol.id}): {contents if contents else 'Empty'}")
+        
+        # Output as JSON
+        print("\n8. Full result as JSON:")
+        print("-" * 60)
+        import json
+        # Convert tuples to lists for JSON serialization
+        json_result = {
+            "auction_id": result["auction_id"],
+            "routes": [[list(stop) for stop in route] for route in result["routes"]],
+            "changes": result["changes"]
+        }
+        print(json.dumps(json_result, indent=2))
+        
+        print("\n" + "=" * 60)
+        print("TEST COMPLETED SUCCESSFULLY ✅")
+        print("=" * 60)
+        return True
+        
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    result = asyncio.run(test_full_routing_flow())
+    if not result:
+        print("\nTEST FAILED ❌")

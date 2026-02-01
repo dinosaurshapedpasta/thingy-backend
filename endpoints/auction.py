@@ -209,3 +209,41 @@ def close_auction(
     db.commit()
     
     return {"code": 200, "message": "Auction closed successfully"}
+
+
+@router.post("/{auction_id}/execute-routing")
+async def execute_routing_endpoint(
+    auction_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_authenticated_user)
+):
+    """
+    Execute the routing algorithm for an auction.
+    
+    This will:
+    1. Get all available volunteers and dropoff points
+    2. Calculate optimal routes using VSP algorithm
+    3. Update volunteer car contents in the database
+    
+    Returns the computed routes and database changes.
+    ONLY AVAILABLE TO MANAGERS.
+    """
+    if current_user.userType != 1:
+        raise HTTPException(status_code=403, detail="Only managers can execute routing")
+    
+    auction = auction_service.get_auction(db, auction_id)
+    if not auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    
+    from app.services.routing_service import execute_routing
+    
+    result = await execute_routing(db, auction_id)
+    
+    if not result:
+        raise HTTPException(
+            status_code=400, 
+            detail="Could not execute routing. Ensure there are accepted bids and valid data."
+        )
+    
+    return result
+
