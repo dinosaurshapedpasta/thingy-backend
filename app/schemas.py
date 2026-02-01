@@ -91,3 +91,8 @@ class ItemsInStorageCreate(BaseModel):
 
 class ItemsInStorageRead(ItemsInStorageCreate):
     model_config = {"from_attributes": True}
+
+
+class StorageItemResponse(BaseModel):
+    id: str
+    quantity: int
