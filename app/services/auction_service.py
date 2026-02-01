@@ -12,7 +12,7 @@ Flow:
 """
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 
@@ -21,9 +21,6 @@ from app import schemas
 from app.services.maps_service import calculate_distance_matrix
 
 
-# Auction configuration
-AUCTION_DURATION_SECONDS = 60
-
 # Scoring weights
 WEIGHT_TIME = 0.6       # Lower travel time = better
 WEIGHT_CAPACITY = 0.25  # More capacity = better
@@ -31,14 +28,16 @@ WEIGHT_KARMA = 0.15     # Higher karma = better
 
 
 def create_auction(db: Session, pickup_request_id: str) -> models.Auction:
-    """Create a new auction for a pickup request."""
+    """Create a new auction for a pickup request.
+    
+    Auction remains active until manager manually triggers processing.
+    """
     now = datetime.utcnow()
     auction = models.Auction(
         id=str(uuid.uuid4()),
         pickupRequestID=pickup_request_id,
         status="active",
         createdAt=now,
-        expiresAt=now + timedelta(seconds=AUCTION_DURATION_SECONDS),
         winnerUserID=None
     )
     db.add(auction)
@@ -76,10 +75,6 @@ def submit_bid(
     """Submit a volunteer's bid to an auction."""
     auction = get_auction(db, auction_id)
     if not auction or auction.status != "active":
-        return None
-    
-    # Check if auction has expired
-    if datetime.utcnow() > auction.expiresAt:
         return None
     
     # Check if user already bid

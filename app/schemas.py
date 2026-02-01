@@ -115,7 +115,6 @@ class AuctionRead(BaseModel):
     pickupRequestID: str
     status: str
     createdAt: datetime
-    expiresAt: datetime
     winnerUserID: Optional[str] = None
     
     model_config = {"from_attributes": True}

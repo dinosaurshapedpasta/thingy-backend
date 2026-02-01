@@ -110,7 +110,10 @@ class ItemsInStorage(Base):
 
 
 class Auction(Base):
-    """Tracks an active auction for a pickup request."""
+    """Tracks an active auction for a pickup request.
+    
+    Auction remains active until manager manually triggers processing.
+    """
     __tablename__ = "auctions"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -118,7 +121,6 @@ class Auction(Base):
         ForeignKey("pickupRequests.id"), nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False, default="active")  # active, closed, completed
     createdAt: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    expiresAt: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     winnerUserID: Mapped[str] = mapped_column(
         ForeignKey("users.id"), nullable=True)
 

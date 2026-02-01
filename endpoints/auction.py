@@ -101,7 +101,7 @@ def submit_bid(
     )
     
     if not bid:
-        raise HTTPException(status_code=400, detail="Cannot submit bid - auction may be closed or expired")
+        raise HTTPException(status_code=400, detail="Cannot submit bid - auction may be closed")
     
     return bid
 

@@ -10,7 +10,7 @@ Run with: python test_full_routing.py
 
 import asyncio
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
@@ -101,8 +101,7 @@ def create_auction_with_bids(db, pickup_request_id: str, volunteer_bids: list):
         id=f"auction-{uuid.uuid4().hex[:8]}",
         pickupRequestID=pickup_request_id,
         status="active",
-        createdAt=datetime.utcnow(),
-        expiresAt=datetime.utcnow() + timedelta(seconds=60)
+        createdAt=datetime.utcnow()
     )
     db.add(auction)
     db.commit()
