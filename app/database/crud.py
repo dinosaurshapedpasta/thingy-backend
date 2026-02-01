@@ -1,3 +1,5 @@
+from typing import List
+
 from sqlalchemy.orm import Session
 
 from . import models
@@ -131,7 +133,7 @@ def get_active_pickup_requests(
 
 
 def create_pickup_request(
-    db: Session, pickup_request: schema.PickupRequest
+    db: Session, pickup_request: schemas.PickupRequest
 ) -> models.StoragePoint:
     db_pickup_request = models.PickupRequest(**pickup_request.model_dump())
     db.add(db_pickup_request)
@@ -144,14 +146,14 @@ def delete_pickup_request(
     db: Session, id: str
 ) -> None:
     # TODO Alex
-    return false
+    return False
 
 
 def get_pickup_request_responses(
     db: Session, id: str
-) -> List[schemas.PickupResponse]:
+) -> List[models.PickupRequestResponses]:
     return (
-        db.query(models.PickupRequestResponse)
+        db.query(models.PickupRequestResponses)
     )
 
 
@@ -159,7 +161,7 @@ def create_pickup_request_response(
     db: Session, id: str, current_user_id: any, resp: int
 ) -> bool:
     # TODO Alex
-    return false
+    return False
 
 
 def create_storage_point(

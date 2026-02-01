@@ -53,7 +53,7 @@ class PickupRequestResponses(Base):
         ForeignKey("pickupRequests.id"), primary_key=True)
     userID: Mapped[str] = mapped_column(
         ForeignKey("users.id"), primary_key=True)
-    result: Mapped[int] = mapped_column(int, nullable=False)
+    result: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class StoragePoint(Base):
