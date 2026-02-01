@@ -6,6 +6,12 @@ from app import schemas
 
 router = APIRouter(prefix="/pickup", tags=["pickup"])
 
+@router.post("/", response_model=schemas.PickupPointRead)
+def create_item(pickup_point_data: schemas.PickupPointCreate, db: Session = Depends(get_db)):
+    """Create a new Pickup Point. ID is assigned automatically by server."""
+    new_pickup_point = crud.create_pickup_point(db, pickup_point_data)
+    return new_pickup_point
+
 @router.get("/{id}", response_model=schemas.PickupPointRead)
 def get_(id: str, db: Session = Depends(get_db)):
     """Get a pickup point."""
@@ -58,10 +64,4 @@ def update_item(id: str, pickup_point_data: schemas.PickupPointCreate, db: Sessi
     if not updated_pickup_point:
         raise HTTPException(status_code=404, detail="Pickup Point not found")
     return updated_pickup_point
-
-@router.post("/", response_model=schemas.PickupPointRead)
-def create_item(pickup_point_data: schemas.PickupPointCreate, db: Session = Depends(get_db)):
-    """Create a new Pickup Point. ID is assigned automatically by server."""
-    new_pickup_point = crud.create_pickup_point(db, pickup_point_data)
-    return new_pickup_point
 
