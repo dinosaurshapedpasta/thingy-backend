@@ -47,7 +47,7 @@ class StoragePoint(Base):
 
 
 class DropOffPoint(Base):
-    __tablename__ = "dropOffPoint"
+    __tablename__ = "dropOffPoints"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)

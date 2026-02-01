@@ -38,7 +38,7 @@ def update_storage_point(
     return updated_storage_point
 
 
-@router.get("/{id}/items")
+@router.get("/{id}/items", response_model=list[schemas.StorageItemResponse])
 def get_storage_items(id: str, db: Session = Depends(get_db)):
     """Get the items currently held by a storage point."""
     # Verify storage point exists

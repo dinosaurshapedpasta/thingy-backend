@@ -1,15 +1,11 @@
-from app.database.config import SessionLocal
-from app.database.models import User
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
 from endpoints.user import router as user_router
 from endpoints.default import router as default_router
 from endpoints.storage import router as storage_router
 from endpoints.dropoff import router as dropoff_router
 
-from . import schemas
-from .database import engine, get_db, crud, Base
+from .database import engine, Base
 
 app = FastAPI()
 
