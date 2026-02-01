@@ -128,7 +128,7 @@ def get_active_pickup_requests(
     db: Session
 ) -> List[schemas.PickupRequest]:
     return (
-        db.query(models.PickupRequest)
+        db.query(models.PickupRequest).all()
     )
 
 
