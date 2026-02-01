@@ -7,7 +7,7 @@ class UserCreate(BaseModel):
     id: str
     name: str
     karma: int
-    maxVolume: float
+    maxVolume: int
     userType: int
 
 
@@ -27,7 +27,7 @@ class ApiKeyRead(ApiKeyCreate):
 class ItemVariantCreate(BaseModel):
     id: str
     name: str
-    volume: float
+    volume: int
 
 
 class ItemVariantRead(ItemVariantCreate):
@@ -52,7 +52,7 @@ class PickupRequest(BaseModel):
 class StoragePointCreate(BaseModel):
     id: str
     name: str
-    maxVolume: float
+    maxVolume: int
     location: str
 
 
@@ -153,7 +153,7 @@ class RoutingInput(BaseModel):
     """Input data for the routing algorithm."""
     distance_matrix: List[List[float]]  # Volunteers to drop-off points
     drops_matrix: List[List[float]]      # Between drop-off points
-    item_volumes: List[float]            # Volume of each item
-    car_caps: List[float]                # Capacity of each volunteer's car
+    item_volumes: List[int]              # Volume of each item
+    car_caps: List[int]                  # Capacity of each volunteer's car
     volunteer_ids: List[str]             # IDs of participating volunteers
     dropoff_ids: List[str]               # IDs of drop-off points

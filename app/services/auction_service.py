@@ -133,8 +133,8 @@ def get_accepted_bids(db: Session, auction_id: str) -> List[models.AuctionBid]:
 def calculate_volunteer_score(
     travel_time: float,
     max_travel_time: float,
-    car_capacity: float,
-    max_capacity: float,
+    car_capacity: int,
+    max_capacity: int,
     karma: int,
     max_karma: int
 ) -> float:
