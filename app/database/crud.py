@@ -145,8 +145,12 @@ def create_pickup_request(
 def delete_pickup_request(
     db: Session, id: str
 ) -> None:
-    # TODO Alex
-    return False
+    db_pickup_request = db.query(models.PickupRequest).filter(
+        models.PickupRequest.id == id
+    ).first()
+    if db_pickup_request:
+        db.delete(db_pickup_request)
+        db.commit()
 
 
 def get_pickup_request_responses(
@@ -160,8 +164,19 @@ def get_pickup_request_responses(
 def create_pickup_request_response(
     db: Session, id: str, current_user_id: any, resp: int
 ) -> bool:
-    # TODO Alex
-    return False
+    try:
+        db_response = models.PickupRequestResponses(
+            requestID=id,
+            userID=current_user_id,
+            result=resp
+        )
+        db.add(db_response)
+        db.commit()
+        db.refresh(db_response)
+        return True
+    except Exception:
+        db.rollback()
+        return False
 
 
 def create_storage_point(
