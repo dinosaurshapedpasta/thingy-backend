@@ -2,7 +2,6 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
 
-
 class UserCreate(BaseModel):
     id: str
     name: str
