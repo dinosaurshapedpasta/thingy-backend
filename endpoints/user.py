@@ -7,24 +7,6 @@ from app.auth import get_current_user as get_authenticated_user
 
 router = APIRouter(prefix="/user", tags=["user"])
 
-@router.get("/{id}", response_model=schemas.UserRead)
-def get_user(id: str, db: Session = Depends(get_db)):
-    """Get details about a user (no authentication required)."""
-    user = crud.get_user(db, id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-
-
-@router.patch("/{id}", response_model=schemas.UserRead)
-def update_user(id: str, user_data: schemas.UserCreate, db: Session = Depends(get_db)):
-    """Change details about a user (no authentication required)."""
-    updated_user = crud.update_user(db, id, user_data)
-    if not updated_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return updated_user
-
-
 @router.get("/me", response_model=schemas.UserRead)
 def get_current_user(current_user = Depends(get_authenticated_user)):
     """
@@ -68,6 +50,24 @@ def update_user_location(
     # TODO: Update user's location
     # TODO: Trigger pathfinding logic if needed
     return {"message": "Location updated", "user_id": current_user.id}
+
+
+@router.get("/{id}", response_model=schemas.UserRead)
+def get_user(id: str, db: Session = Depends(get_db)):
+    """Get details about a user (no authentication required)."""
+    user = crud.get_user(db, id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+@router.patch("/{id}", response_model=schemas.UserRead)
+def update_user(id: str, user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+    """Change details about a user (no authentication required)."""
+    updated_user = crud.update_user(db, id, user_data)
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return updated_user
 
 
 @router.get("/{id}/items")
