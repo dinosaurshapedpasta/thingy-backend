@@ -305,39 +305,41 @@ def prepare_routing_input(
     auction_id: str
 ) -> Optional[schemas.RoutingInput]:
     """
-    Prepare the input data for the routing algorithm.
+    Prepare the input data for the routing algorithm (without real distance calculations).
     
     Returns:
-    - distance_matrix: Winner volunteer to all drop-off points
-    - drops_matrix: Distances between all drop-off points
+    - distance_matrix: All available volunteers to all drop-off points (placeholder values)
+    - drops_matrix: Distances between all drop-off points (placeholder values)
     - item_volumes: Volume of each item at the pickup point
-    - car_caps: Capacity of the winning volunteer's car
+    - car_caps: Capacity of each available volunteer's car
+    - volunteer_ids: List of all available volunteer IDs
+    - dropoff_ids: List of all drop-off point IDs
     """
     auction = get_auction(db, auction_id)
-    if not auction or auction.status != "completed":
+    if not auction:
         return None
     
-    if not auction.winnerUserID:
-        return None
-    
-    # Get the winning volunteer
-    winner = db.query(models.User).filter(
-        models.User.id == auction.winnerUserID
-    ).first()
-    
-    if not winner:
-        return None
-    
-    # Get winner's bid (contains their location)
-    winner_bid = db.query(models.AuctionBid).filter(
+    # Get ALL accepted bids (available volunteers)
+    accepted_bids = db.query(models.AuctionBid).filter(
         models.AuctionBid.auctionID == auction_id,
-        models.AuctionBid.userID == winner.id
-    ).first()
+        models.AuctionBid.accepted == True
+    ).all()
     
-    if not winner_bid or not winner_bid.latitude or not winner_bid.longitude:
+    if not accepted_bids:
         return None
     
-    winner_location = (winner_bid.latitude, winner_bid.longitude)
+    # Get volunteer info for all accepted bids
+    volunteers = []
+    for bid in accepted_bids:
+        if bid.latitude and bid.longitude:
+            user = db.query(models.User).filter(
+                models.User.id == bid.userID
+            ).first()
+            if user:
+                volunteers.append(user)
+    
+    if not volunteers:
+        return None
     
     # Get all drop-off points with their locations
     dropoff_points = db.query(models.DropOffPoint).all()
@@ -347,19 +349,17 @@ def prepare_routing_input(
             distance_matrix=[],
             drops_matrix=[],
             item_volumes=[],
-            car_caps=[winner.maxVolume],
-            volunteer_ids=[winner.id],
+            car_caps=[v.maxVolume for v in volunteers],
+            volunteer_ids=[v.id for v in volunteers],
             dropoff_ids=[]
         )
     
     # Parse drop-off locations
     from app.services.maps_service import parse_location_string
-    dropoff_locations = []
     valid_dropoffs = []
     for dp in dropoff_points:
         loc = parse_location_string(dp.location)
         if loc:
-            dropoff_locations.append(loc)
             valid_dropoffs.append(dp)
     
     # Get item volumes from pickup point
@@ -382,13 +382,14 @@ def prepare_routing_input(
                 for _ in range(item_record.quantity):
                     item_volumes.append(item.volume)
     
-    # Build distance matrices
+    # Build distance matrices (placeholder values - use prepare_routing_input_with_distances for real values)
     num_dropoffs = len(valid_dropoffs)
+    num_volunteers = len(volunteers)
     
-    # Distance matrix: [1 volunteer] x [N dropoffs] - travel time from winner to each dropoff
-    distance_matrix = [[0.0 for _ in range(num_dropoffs)]]
+    # Distance matrix: [N volunteers] x [N dropoffs] - placeholder travel times
+    distance_matrix = [[0.0 for _ in range(num_dropoffs)] for _ in range(num_volunteers)]
     
-    # Drops matrix: [N dropoffs] x [N dropoffs] - travel time between dropoffs
+    # Drops matrix: [N dropoffs] x [N dropoffs] - placeholder travel times
     drops_matrix = [[0.0 for _ in range(num_dropoffs)] for _ in range(num_dropoffs)]
     
     dropoff_ids = [dp.id for dp in valid_dropoffs]
@@ -397,8 +398,8 @@ def prepare_routing_input(
         distance_matrix=distance_matrix,
         drops_matrix=drops_matrix,
         item_volumes=item_volumes,
-        car_caps=[winner.maxVolume],
-        volunteer_ids=[winner.id],
+        car_caps=[v.maxVolume for v in volunteers],
+        volunteer_ids=[v.id for v in volunteers],
         dropoff_ids=dropoff_ids
     )
 
@@ -411,36 +412,41 @@ async def prepare_routing_input_with_distances(
     Prepare routing input with REAL distances calculated via OpenRouteService.
     
     Returns:
-    - distance_matrix: Travel times from winner to all drop-off points (in minutes)
+    - distance_matrix: Travel times from EACH available volunteer to all drop-off points (in minutes)
     - drops_matrix: Travel times between all drop-off points (in minutes)
     - item_volumes: Volume of each item at the pickup point
-    - car_caps: Capacity of the winning volunteer's car
+    - car_caps: Capacity of each available volunteer's car
+    - volunteer_ids: List of all available volunteer IDs
+    - dropoff_ids: List of all drop-off point IDs
     """
     auction = get_auction(db, auction_id)
-    if not auction or auction.status != "completed":
+    if not auction:
         return None
     
-    if not auction.winnerUserID:
-        return None
-    
-    # Get the winning volunteer
-    winner = db.query(models.User).filter(
-        models.User.id == auction.winnerUserID
-    ).first()
-    
-    if not winner:
-        return None
-    
-    # Get winner's bid (contains their location)
-    winner_bid = db.query(models.AuctionBid).filter(
+    # Get ALL accepted bids (available volunteers)
+    accepted_bids = db.query(models.AuctionBid).filter(
         models.AuctionBid.auctionID == auction_id,
-        models.AuctionBid.userID == winner.id
-    ).first()
+        models.AuctionBid.accepted == True
+    ).all()
     
-    if not winner_bid or not winner_bid.latitude or not winner_bid.longitude:
+    if not accepted_bids:
         return None
     
-    winner_location = (winner_bid.latitude, winner_bid.longitude)
+    # Get volunteer info and locations for all accepted bids
+    volunteers = []
+    volunteer_locations = []
+    
+    for bid in accepted_bids:
+        if bid.latitude and bid.longitude:
+            user = db.query(models.User).filter(
+                models.User.id == bid.userID
+            ).first()
+            if user:
+                volunteers.append(user)
+                volunteer_locations.append((bid.latitude, bid.longitude))
+    
+    if not volunteers:
+        return None
     
     # Get all drop-off points with their locations
     dropoff_points = db.query(models.DropOffPoint).all()
@@ -450,8 +456,8 @@ async def prepare_routing_input_with_distances(
             distance_matrix=[],
             drops_matrix=[],
             item_volumes=[],
-            car_caps=[winner.maxVolume],
-            volunteer_ids=[winner.id],
+            car_caps=[v.maxVolume for v in volunteers],
+            volunteer_ids=[v.id for v in volunteers],
             dropoff_ids=[]
         )
     
@@ -470,8 +476,8 @@ async def prepare_routing_input_with_distances(
             distance_matrix=[],
             drops_matrix=[],
             item_volumes=[],
-            car_caps=[winner.maxVolume],
-            volunteer_ids=[winner.id],
+            car_caps=[v.maxVolume for v in volunteers],
+            volunteer_ids=[v.id for v in volunteers],
             dropoff_ids=[]
         )
     
@@ -496,14 +502,15 @@ async def prepare_routing_input_with_distances(
     
     # Calculate REAL distances using OpenRouteService
     try:
-        # Distance from winner to each dropoff
+        # Distance from EACH volunteer to each dropoff
         distance_matrix = await calculate_distance_matrix(
-            origins=[winner_location],
+            origins=volunteer_locations,
             destinations=dropoff_locations
         )
     except Exception as e:
-        print(f"Error calculating winner->dropoff distances: {e}")
-        distance_matrix = [[10.0 for _ in dropoff_locations]]  # Fallback
+        print(f"Error calculating volunteer->dropoff distances: {e}")
+        # Fallback: create matrix with default values for each volunteer
+        distance_matrix = [[10.0 for _ in dropoff_locations] for _ in volunteers]
     
     try:
         # Distances between all dropoff points
@@ -522,7 +529,7 @@ async def prepare_routing_input_with_distances(
         distance_matrix=distance_matrix,
         drops_matrix=drops_matrix,
         item_volumes=item_volumes,
-        car_caps=[winner.maxVolume],
-        volunteer_ids=[winner.id],
+        car_caps=[v.maxVolume for v in volunteers],
+        volunteer_ids=[v.id for v in volunteers],
         dropoff_ids=dropoff_ids
     )
