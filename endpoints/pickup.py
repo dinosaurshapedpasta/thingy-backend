@@ -7,7 +7,7 @@ from app import schemas
 router = APIRouter(prefix="/pickup", tags=["pickup"])
 
 @router.get("/{id}", response_model=schemas.PickupPointRead)
-def get_(id: str, db: Session = Depends(get_db)):
+def get_pickup_point(id: str, db: Session = Depends(get_db)):
     """Get a pickup point."""
     pickup_point = crud.get_pickup_point(db, id)
     if not pickup_point:
@@ -27,7 +27,7 @@ def get_pickup_point_items(id: str, db: Session = Depends(get_db)):
 
 
 @router.patch("/{id}", response_model=schemas.PickupPointRead)
-def update_item(id: str, pickup_point_data: schemas.PickupPointCreate, db: Session = Depends(get_db)):
+def update_pickup_point(id: str, pickup_point_data: schemas.PickupPointCreate, db: Session = Depends(get_db)):
     """Change details about a pickup point."""
     updated_pickup_point = crud.update_pickup_point(db, id, pickup_point_data)
     if not updated_pickup_point:
@@ -35,7 +35,7 @@ def update_item(id: str, pickup_point_data: schemas.PickupPointCreate, db: Sessi
     return updated_pickup_point
 
 @router.post("/", response_model=schemas.PickupPointRead)
-def create_item(pickup_point_data: schemas.PickupPointCreate, db: Session = Depends(get_db)):
+def create_pickup_point(pickup_point_data: schemas.PickupPointCreate, db: Session = Depends(get_db)):
     """Create a new Pickup Point. ID is assigned automatically by server."""
     new_pickup_point = crud.create_pickup_point(db, pickup_point_data)
     return new_pickup_point

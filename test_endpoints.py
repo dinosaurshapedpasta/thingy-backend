@@ -439,10 +439,10 @@ class TestDuplicatesAndConflicts:
             "name": "Second Item",
             "volume": 20.0
         }
-        # The endpoint doesn't catch IntegrityError, so it propagates
-        # This is actually correct behavior - duplicate IDs should fail
-        with pytest.raises(Exception):  # Could be IntegrityError or 500 response
-            response2 = client.post("/items/", json=item_data2)
+        # Error handler middleware catches IntegrityError and returns 409
+        response2 = client.post("/items/", json=item_data2)
+        assert response2.status_code == 409
+        assert "constraint" in response2.json()["detail"].lower()
 
     def test_create_duplicate_pickup_id(self):
         """Test creating two pickup points with same ID fails with database constraint."""
@@ -459,9 +459,10 @@ class TestDuplicatesAndConflicts:
             "name": "Second Pickup",
             "location": "Location 2"
         }
-        # The endpoint doesn't catch IntegrityError, so it propagates
-        with pytest.raises(Exception):  # Could be IntegrityError or 500 response
-            response2 = client.post("/pickup/", json=pickup2)
+        # Error handler middleware catches IntegrityError and returns 409
+        response2 = client.post("/pickup/", json=pickup2)
+        assert response2.status_code == 409
+        assert "constraint" in response2.json()["detail"].lower()
 
     def test_update_nonexistent_then_create(self):
         """Test updating non-existent item, then creating it."""

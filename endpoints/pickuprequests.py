@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -17,7 +19,7 @@ def get_pickup_requests(
     return crud.get_active_pickup_requests(db)
 
 
-@router.post("/", response_model=schemas.StoragePoint)
+@router.post("/", response_model=schemas.PickupRequestRead)
 def create_pickup_request(
     pickup_request: schemas.PickupRequest,
     db: Session = Depends(get_db),

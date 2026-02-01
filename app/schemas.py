@@ -47,6 +47,19 @@ class PickupRequest(BaseModel):
     pickupPointID: str
 
 
+class PickupRequestRead(PickupRequest):
+    model_config = {"from_attributes": True}
+
+
+class PickupResponse(BaseModel):
+    """Response to a pickup request from a volunteer."""
+    requestID: str
+    userID: str
+    result: int
+
+    model_config = {"from_attributes": True}
+
+
 class StoragePointCreate(BaseModel):
     id: str
     name: str
