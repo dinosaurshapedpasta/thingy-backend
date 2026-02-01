@@ -10,7 +10,6 @@ from endpoints.storage import router as storage_router
 from endpoints.dropoff import router as dropoff_router
 from endpoints.pickuprequests import router as pickuprequests_router
 from endpoints.default import router as default_router
-from endpoints.auction import router as auction_router
 
 from .database import engine, Base
 
@@ -34,6 +33,5 @@ app.include_router(pickup_router)
 app.include_router(storage_router)
 app.include_router(dropoff_router)
 app.include_router(pickuprequests_router)
-app.include_router(auction_router)
 
 Base.metadata.create_all(bind=engine)

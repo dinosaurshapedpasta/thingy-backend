@@ -24,7 +24,6 @@ def create_auction(
 ):
     """
     Create a new auction for a pickup request.
-    This starts the 60-second bidding window.
     ONLY AVAILABLE TO MANAGERS.
     """
     # Check if user is a manager (userType == 1)

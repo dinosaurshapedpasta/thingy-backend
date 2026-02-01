@@ -8,6 +8,8 @@ class UserCreate(BaseModel):
     karma: int
     maxVolume: int
     userType: int
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 class UserRead(UserCreate):

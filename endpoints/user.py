@@ -46,10 +46,21 @@ def update_user_location(
     Send a user's own location. Called when requests from managers are accepted for pathfinding.
 
     Requires X-API-Key header for authentication.
+    Expects: {"latitude": float, "longitude": float}
     """
-    # TODO: Update user's location
-    # TODO: Trigger pathfinding logic if needed
-    return {"message": "Location updated", "user_id": current_user.id}
+    latitude = location.get("latitude")
+    longitude = location.get("longitude")
+    
+    if latitude is None or longitude is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="latitude and longitude are required")
+    
+    updated_user = crud.update_user_location(db, current_user.id, latitude, longitude)
+    if not updated_user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail="Failed to update location")
+    
+    return {"message": "Location updated", "user_id": current_user.id, "latitude": latitude, "longitude": longitude}
 
 
 @router.get("/{id}", response_model=schemas.UserRead)

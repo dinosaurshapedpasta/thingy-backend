@@ -2,7 +2,7 @@
 Routing Service Module
 
 Orchestrates the full routing flow:
-1. Get routing input from auction service
+1. Get routing input from pickup service
 2. Run VSP algorithm to optimize routes
 3. Apply results to database (update car contents, etc.)
 """
@@ -13,15 +13,15 @@ from sqlalchemy.orm import Session
 from app.database import models
 from app import schemas
 from app.vsp import solve_routing
-from app.services.auction_service import prepare_routing_input_with_distances
+from app.services.pickup_service import prepare_routing_input_with_distances
 
 
 async def execute_routing(
     db: Session,
-    auction_id: str
+    pickup_request_id: str
 ) -> Optional[Dict]:
     """
-    Execute the full routing flow for an auction.
+    Execute the full routing flow for a pickup request.
     
     1. Get routing input data (volunteers, dropoffs, distances)
     2. Run VSP algorithm
@@ -31,7 +31,7 @@ async def execute_routing(
         Dictionary with routes and applied changes, or None if failed
     """
     # Step 1: Get routing input
-    routing_input = await prepare_routing_input_with_distances(db, auction_id)
+    routing_input = await prepare_routing_input_with_distances(db, pickup_request_id)
     
     if not routing_input:
         return None
@@ -61,11 +61,11 @@ async def execute_routing(
         volunteer_ids=routing_input.volunteer_ids,
         dropoff_ids=routing_input.dropoff_ids,
         item_id=routing_input.item_id,
-        auction_id=auction_id
+        pickup_request_id=pickup_request_id
     )
     
     return {
-        "auction_id": auction_id,
+        "pickup_request_id": pickup_request_id,
         "routes": routes,
         "changes": changes
     }
@@ -77,7 +77,7 @@ def apply_routing_results(
     volunteer_ids: List[str],
     dropoff_ids: List[str],
     item_id: str,
-    auction_id: str
+    pickup_request_id: str
 ) -> Dict:
     """
     Apply routing results to the database.

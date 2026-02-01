@@ -92,3 +92,77 @@ def deny_pickup_request(
         raise HTTPException(status_code=404, detail="Pickup request not found")
 
     return {"detail": "Action successful"}
+
+
+@router.post("/{id}/execute-routing")
+async def execute_routing_endpoint(
+    id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_authenticated_user),
+):
+    """
+    Execute the routing algorithm for a pickup request.
+    
+    This will:
+    1. Get all volunteers who accepted and have GPS location
+    2. Calculate optimal routes using VSP algorithm
+    3. Update volunteer car contents in the database
+    
+    Returns the computed routes and database changes.
+    ONLY AVAILABLE TO MANAGERS.
+    """
+    if current_user.userType != 1:
+        raise HTTPException(status_code=403, detail="Only managers can execute routing")
+    
+    # Check pickup request exists
+    from app.database import models
+    pickup_request = db.query(models.PickupRequest).filter(
+        models.PickupRequest.id == id
+    ).first()
+    
+    if not pickup_request:
+        raise HTTPException(status_code=404, detail="Pickup request not found")
+    
+    from app.services.routing_service import execute_routing
+    
+    result = await execute_routing(db, id)
+    
+    if not result:
+        raise HTTPException(
+            status_code=400, 
+            detail="Could not execute routing. Ensure there are volunteers who accepted with GPS locations."
+        )
+    
+    return result
+
+
+@router.get("/{id}/routing-input", response_model=schemas.RoutingInput)
+async def get_routing_input(
+    id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_authenticated_user),
+):
+    """
+    Get the input data for the routing algorithm.
+    Calculates real travel times via OpenRouteService.
+    
+    Returns:
+    - distance_matrix: Travel times from each volunteer to each drop-off (minutes)
+    - drops_matrix: Travel times between drop-offs (minutes)
+    - item_volumes: Volume of each item at pickup
+    - car_caps: Each volunteer's car capacity
+    - volunteer_ids: IDs of volunteers who accepted with GPS
+    - dropoff_ids: All drop-off point IDs
+    
+    ONLY AVAILABLE TO MANAGERS.
+    """
+    if current_user.userType != 1:
+        raise HTTPException(status_code=403, detail="Only managers can access routing data")
+    
+    from app.services.pickup_service import prepare_routing_input_with_distances
+    
+    routing_input = await prepare_routing_input_with_distances(db, id)
+    if not routing_input:
+        raise HTTPException(status_code=400, detail="No accepted volunteers with GPS or pickup request not found")
+    
+    return routing_input

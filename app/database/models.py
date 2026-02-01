@@ -13,6 +13,8 @@ class User(Base):
     karma: Mapped[int] = mapped_column(Integer, nullable=False)
     maxVolume: Mapped[int] = mapped_column(Integer, nullable=False)
     userType: Mapped[int] = mapped_column(Integer, nullable=False)
+    latitude: Mapped[float] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float] = mapped_column(Float, nullable=True)
 
 
 class ApiKey(Base):

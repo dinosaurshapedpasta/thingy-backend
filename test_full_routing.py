@@ -1,9 +1,10 @@
 """
 Test script to verify the full routing flow:
-1. Create auction with volunteer bids
-2. Get routing input
-3. Run VSP algorithm
-4. Apply results to database
+1. Create pickup request
+2. Volunteers accept and set their GPS location
+3. Get routing input
+4. Run VSP algorithm
+5. Apply results to database
 
 Run with: python test_full_routing.py
 """
@@ -18,7 +19,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-from app.database.models import Base, User, DropOffPoint, PickupPoint, PickupRequest, ItemVariant, ItemsAtPickupPoint, Auction, AuctionBid, ItemsInCar
+from app.database.models import Base, User, DropOffPoint, PickupPoint, PickupRequest, ItemVariant, ItemsAtPickupPoint, PickupRequestResponses, ItemsInCar
 from app.services.routing_service import execute_routing, get_volunteer_car_contents
 from app.vsp import solve_routing
 from app import schemas
@@ -33,11 +34,11 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 def setup_test_data(db):
     """Create test data for routing."""
     
-    # Create volunteers
+    # Create volunteers with GPS locations
     volunteers = [
-        User(id="vol-1", name="Alice", karma=80, maxVolume=35, userType=0),
-        User(id="vol-2", name="Bob", karma=90, maxVolume=25, userType=0),
-        User(id="vol-3", name="Charlie", karma=100, maxVolume=40, userType=0),
+        User(id="vol-1", name="Alice", karma=80, maxVolume=35, userType=0, latitude=51.5100, longitude=-0.1300),
+        User(id="vol-2", name="Bob", karma=90, maxVolume=25, userType=0, latitude=51.5180, longitude=-0.1400),
+        User(id="vol-3", name="Charlie", karma=100, maxVolume=40, userType=0, latitude=51.5050, longitude=-0.1200),
     ]
     for v in volunteers:
         db.add(v)
@@ -94,33 +95,18 @@ def setup_test_data(db):
     return volunteers
 
 
-def create_auction_with_bids(db, pickup_request_id: str, volunteer_bids: list):
-    """Create an auction and add volunteer bids."""
+def create_pickup_responses(db, pickup_request_id: str, volunteer_ids: list):
+    """Create pickup request responses (volunteers accepting)."""
     
-    auction = Auction(
-        id=f"auction-{uuid.uuid4().hex[:8]}",
-        pickupRequestID=pickup_request_id,
-        status="active",
-        createdAt=datetime.utcnow()
-    )
-    db.add(auction)
-    db.commit()
-    
-    for vol_id, lat, lon in volunteer_bids:
-        bid = AuctionBid(
-            auctionID=auction.id,
+    for vol_id in volunteer_ids:
+        response = PickupRequestResponses(
+            requestID=pickup_request_id,
             userID=vol_id,
-            accepted=True,
-            latitude=lat,
-            longitude=lon,
-            estimatedTime=10.0,
-            score=0.5,
-            createdAt=datetime.utcnow()
+            result=1  # 1 = accepted
         )
-        db.add(bid)
+        db.add(response)
     
     db.commit()
-    return auction
 
 
 async def test_full_routing_flow():
@@ -134,23 +120,21 @@ async def test_full_routing_flow():
     
     try:
         print("=" * 60)
-        print("FULL ROUTING FLOW TEST")
+        print("FULL ROUTING FLOW TEST (Pickup Request Based)")
         print("=" * 60)
         
         # Step 1: Setup data
         print("\n1. Setting up test data...")
         volunteers = setup_test_data(db)
-        print(f"   Created {len(volunteers)} volunteers")
+        print(f"   Created {len(volunteers)} volunteers with GPS locations")
+        for vol in volunteers:
+            print(f"     - {vol.name}: ({vol.latitude}, {vol.longitude})")
         
-        # Step 2: Create auction with bids
-        print("\n2. Creating auction with volunteer bids...")
-        volunteer_bids = [
-            ("vol-1", 51.5100, -0.1300),  # Near Westminster
-            ("vol-2", 51.5180, -0.1400),  # Near Oxford Circus
-            ("vol-3", 51.5050, -0.1200),  # Near London Eye
-        ]
-        auction = create_auction_with_bids(db, "request-1", volunteer_bids)
-        print(f"   Auction ID: {auction.id}")
+        # Step 2: Volunteers accept pickup request
+        print("\n2. Volunteers accepting pickup request...")
+        volunteer_ids = ["vol-1", "vol-2", "vol-3"]
+        create_pickup_responses(db, "request-1", volunteer_ids)
+        print(f"   {len(volunteer_ids)} volunteers accepted")
         
         # Step 3: Check car contents before routing
         print("\n3. Car contents BEFORE routing:")
@@ -160,7 +144,7 @@ async def test_full_routing_flow():
         
         # Step 4: Execute routing
         print("\n4. Executing routing algorithm...")
-        result = await execute_routing(db, auction.id)
+        result = await execute_routing(db, "request-1")
         
         if not result:
             print("   ERROR: Routing failed!")
@@ -205,7 +189,7 @@ async def test_full_routing_flow():
         import json
         # Convert tuples to lists for JSON serialization
         json_result = {
-            "auction_id": result["auction_id"],
+            "pickup_request_id": result["pickup_request_id"],
             "routes": [[list(stop) for stop in route] for route in result["routes"]],
             "changes": result["changes"]
         }

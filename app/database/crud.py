@@ -37,6 +37,22 @@ def update_user(
     return db_user
 
 
+def update_user_location(
+    db: Session, user_id: str, latitude: float, longitude: float
+) -> models.User | None:
+    """Update a user's GPS location."""
+    db_user = get_user(db, user_id)
+    if not db_user:
+        return None
+
+    db_user.latitude = latitude
+    db_user.longitude = longitude
+
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
 def create_api_key(db: Session, api_key: schemas.ApiKeyCreate) -> models.ApiKey:
     db_api_key = models.ApiKey(**api_key.model_dump())
     db.add(db_api_key)
