@@ -144,9 +144,24 @@ def create_pickup_request(
 
 def delete_pickup_request(
     db: Session, id: str
-) -> None:
-    # TODO Alex
-    return False
+) -> bool:
+    # Find the pickup request
+    pickup_request = db.query(models.PickupRequest).filter(
+        models.PickupRequest.id == id
+    ).first()
+    
+    if not pickup_request:
+        return False
+    
+    # Delete associated responses first
+    db.query(models.PickupRequestResponses).filter(
+        models.PickupRequestResponses.requestID == id
+    ).delete()
+    
+    # Delete the pickup request
+    db.delete(pickup_request)
+    db.commit()
+    return True
 
 
 def get_pickup_request_responses(
@@ -154,14 +169,42 @@ def get_pickup_request_responses(
 ) -> List[models.PickupRequestResponses]:
     return (
         db.query(models.PickupRequestResponses)
+        .filter(models.PickupRequestResponses.requestID == id)
+        .all()
     )
 
 
 def create_pickup_request_response(
-    db: Session, id: str, current_user_id: any, resp: int
+    db: Session, id: str, current_user_id: str, resp: int
 ) -> bool:
-    # TODO Alex
-    return False
+    # Check if the pickup request exists
+    pickup_request = db.query(models.PickupRequest).filter(
+        models.PickupRequest.id == id
+    ).first()
+    
+    if not pickup_request:
+        return False
+    
+    # Check if user already responded
+    existing_response = db.query(models.PickupRequestResponses).filter(
+        models.PickupRequestResponses.requestID == id,
+        models.PickupRequestResponses.userID == current_user_id
+    ).first()
+    
+    if existing_response:
+        # Update existing response
+        existing_response.result = resp
+    else:
+        # Create new response
+        db_response = models.PickupRequestResponses(
+            requestID=id,
+            userID=current_user_id,
+            result=resp
+        )
+        db.add(db_response)
+    
+    db.commit()
+    return True
 
 
 def create_storage_point(
