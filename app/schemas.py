@@ -42,6 +42,11 @@ class PickupPointRead(PickupPointCreate):
     model_config = {"from_attributes": True}
 
 
+class PickupRequest(BaseModel):
+    id: str
+    pickupPointID: str
+
+
 class StoragePointCreate(BaseModel):
     id: str
     name: str

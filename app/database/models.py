@@ -37,6 +37,21 @@ class PickupPoint(Base):
     location: Mapped[str] = mapped_column(String, nullable=False)
 
 
+class PickupRequest(Base):
+    __tablename__ = "pickupRequests"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    pickupPointID: Mapped[str] = mapped_column(String, nullable=False)
+
+
+class PickupRequestResponses(Base):
+    __tablename__ = "pickupRequestResponses"
+
+    requestID: Mapped[str] = mapped_column(String, primary_key=True)
+    userID: Mapped[str] = mapped_column(String, primary_key=True)
+    result: Mapped[int] = mapped_column(int, nullable=False)
+
+
 class StoragePoint(Base):
     __tablename__ = "storagePoints"
 
