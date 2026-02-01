@@ -122,6 +122,46 @@ def update_pickup_point(
     return db_point
 
 
+def get_active_pickup_requests(
+    db: Session
+) -> List[schemas.PickupRequest]:
+    return (
+        db.query(models.PickupRequest)
+    )
+
+
+def create_pickup_request(
+    db: Session, pickup_request: schema.PickupRequest
+) -> models.StoragePoint:
+    db_pickup_request = models.PickupRequest(**pickup_request.model_dump())
+    db.add(db_pickup_request)
+    db.commit()
+    db.refresh(db_pickup_request)
+    return db_pickup_request
+
+
+def delete_pickup_request(
+    db: Session, id: str
+) -> None:
+    # TODO Alex
+    return false
+
+
+def get_pickup_request_responses(
+    db: Session, id: str
+) -> List[schemas.PickupResponse]:
+    return (
+        db.query(models.PickupRequestResponse)
+    )
+
+
+def create_pickup_request_response(
+    db: Session, id: str, current_user_id: any, resp: int
+) -> bool:
+    # TODO Alex
+    return false
+
+
 def create_storage_point(
     db: Session, storage_point: schemas.StoragePointCreate
 ) -> models.StoragePoint:
