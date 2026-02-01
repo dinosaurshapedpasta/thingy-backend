@@ -1,5 +1,6 @@
-from sqlalchemy import String, Integer, ForeignKey
+from sqlalchemy import String, Integer, Float, ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
+from datetime import datetime
 
 from .config import Base
 
@@ -106,3 +107,33 @@ class ItemsInStorage(Base):
         ForeignKey("itemVariants.id"), primary_key=True
     )
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class Auction(Base):
+    """Tracks an active auction for a pickup request."""
+    __tablename__ = "auctions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    pickupRequestID: Mapped[str] = mapped_column(
+        ForeignKey("pickupRequests.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="active")  # active, closed, completed
+    createdAt: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    expiresAt: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    winnerUserID: Mapped[str] = mapped_column(
+        ForeignKey("users.id"), nullable=True)
+
+
+class AuctionBid(Base):
+    """Tracks volunteer bids/responses to an auction."""
+    __tablename__ = "auctionBids"
+
+    auctionID: Mapped[str] = mapped_column(
+        ForeignKey("auctions.id"), primary_key=True)
+    userID: Mapped[str] = mapped_column(
+        ForeignKey("users.id"), primary_key=True)
+    accepted: Mapped[int] = mapped_column(Integer, nullable=False)  # 1 = yes, 0 = no
+    latitude: Mapped[float] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float] = mapped_column(Float, nullable=True)
+    estimatedTime: Mapped[float] = mapped_column(Float, nullable=True)  # Minutes to pickup
+    score: Mapped[float] = mapped_column(Float, nullable=True)  # Final calculated score
+    createdAt: Mapped[datetime] = mapped_column(DateTime, nullable=False)

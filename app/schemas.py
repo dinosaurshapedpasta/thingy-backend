@@ -1,4 +1,6 @@
 from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional, List
 
 class UserCreate(BaseModel):
     id: str
@@ -100,3 +102,59 @@ class ItemsInStorageRead(ItemsInStorageCreate):
 class StorageItemResponse(BaseModel):
     id: str
     quantity: int
+
+
+# ============== Auction Schemas ==============
+
+class AuctionCreate(BaseModel):
+    pickupRequestID: str
+
+
+class AuctionRead(BaseModel):
+    id: str
+    pickupRequestID: str
+    status: str
+    createdAt: datetime
+    expiresAt: datetime
+    winnerUserID: Optional[str] = None
+    
+    model_config = {"from_attributes": True}
+
+
+class AuctionBidCreate(BaseModel):
+    """Volunteer's response to an auction."""
+    accepted: bool
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+class AuctionBidRead(BaseModel):
+    auctionID: str
+    userID: str
+    accepted: int
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    estimatedTime: Optional[float] = None
+    score: Optional[float] = None
+    createdAt: datetime
+    
+    model_config = {"from_attributes": True}
+
+
+class AuctionResult(BaseModel):
+    """Result of an auction after processing."""
+    auctionID: str
+    winnerUserID: Optional[str] = None
+    bids: List[AuctionBidRead]
+
+
+class RoutingInput(BaseModel):
+    """Input data for the routing algorithm."""
+    distance_matrix: List[List[float]]  # Volunteers to drop-off points
+    drops_matrix: List[List[float]]      # Between drop-off points
+    item_volumes: List[int]              # Volume of each item
+    car_caps: List[int]                  # Capacity of each volunteer's car
+    volunteer_ids: List[str]             # IDs of participating volunteers
+    dropoff_ids: List[str]               # IDs of drop-off points
+    car_contents: List[List[float]]      # Current contents of each car (volume per item type)
+    item_id: str                         # ID of the item variant being delivered
