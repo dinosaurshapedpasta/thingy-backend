@@ -157,3 +157,5 @@ class RoutingInput(BaseModel):
     car_caps: List[float]                # Capacity of each volunteer's car
     volunteer_ids: List[str]             # IDs of participating volunteers
     dropoff_ids: List[str]               # IDs of drop-off points
+    car_contents: List[List[float]]      # Current contents of each car (volume per item type)
+    item_id: str                         # ID of the item variant being delivered

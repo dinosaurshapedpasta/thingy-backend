@@ -394,13 +394,31 @@ def prepare_routing_input(
     
     dropoff_ids = [dp.id for dp in valid_dropoffs]
     
+    # Get item_id from the pickup request items (use first item variant as the main item)
+    item_id = ""
+    if pickup_request:
+        first_item = db.query(models.ItemsAtPickupPoint).filter(
+            models.ItemsAtPickupPoint.pickupPointID == pickup_request.pickupPointID
+        ).first()
+        if first_item:
+            item_id = first_item.itemVariantID
+    
+    # Car contents - initially empty for each volunteer (placeholder)
+    # Each car has a vector of 0s representing no items currently loaded
+    num_item_types = len(set([iap.itemVariantID for iap in db.query(models.ItemsAtPickupPoint).filter(
+        models.ItemsAtPickupPoint.pickupPointID == pickup_request.pickupPointID
+    ).all()])) if pickup_request else 0
+    car_contents = [[0.0 for _ in range(num_item_types)] for _ in volunteers]
+    
     return schemas.RoutingInput(
         distance_matrix=distance_matrix,
         drops_matrix=drops_matrix,
         item_volumes=item_volumes,
         car_caps=[v.maxVolume for v in volunteers],
         volunteer_ids=[v.id for v in volunteers],
-        dropoff_ids=dropoff_ids
+        dropoff_ids=dropoff_ids,
+        car_contents=car_contents,
+        item_id=item_id
     )
 
 
@@ -525,11 +543,29 @@ async def prepare_routing_input_with_distances(
     
     dropoff_ids = [dp.id for dp in valid_dropoffs]
     
+    # Get item_id from the pickup request items (use first item variant as the main item)
+    item_id = ""
+    if pickup_request:
+        first_item = db.query(models.ItemsAtPickupPoint).filter(
+            models.ItemsAtPickupPoint.pickupPointID == pickup_request.pickupPointID
+        ).first()
+        if first_item:
+            item_id = first_item.itemVariantID
+    
+    # Car contents - initially empty for each volunteer
+    # Each car has a vector of 0s representing no items currently loaded
+    num_item_types = len(set([iap.itemVariantID for iap in db.query(models.ItemsAtPickupPoint).filter(
+        models.ItemsAtPickupPoint.pickupPointID == pickup_request.pickupPointID
+    ).all()])) if pickup_request else 0
+    car_contents = [[0.0 for _ in range(num_item_types)] for _ in volunteers]
+    
     return schemas.RoutingInput(
         distance_matrix=distance_matrix,
         drops_matrix=drops_matrix,
         item_volumes=item_volumes,
         car_caps=[v.maxVolume for v in volunteers],
         volunteer_ids=[v.id for v in volunteers],
-        dropoff_ids=dropoff_ids
+        dropoff_ids=dropoff_ids,
+        car_contents=car_contents,
+        item_id=item_id
     )

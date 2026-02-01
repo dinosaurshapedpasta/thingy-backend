@@ -81,20 +81,24 @@ def setup_test_data(db):
     )
     db.add(pickup)
     
-    # Create item variants
+    # Create 5 item variants (types)
     items = [
-        ItemVariant(id="item-small", name="Small Box", volume=5.0),
-        ItemVariant(id="item-medium", name="Medium Box", volume=15.0),
-        ItemVariant(id="item-large", name="Large Box", volume=30.0),
+        ItemVariant(id="item-type-1", name="Canned Food", volume=2.0),
+        ItemVariant(id="item-type-2", name="Clothing", volume=5.0),
+        ItemVariant(id="item-type-3", name="Toiletries", volume=3.0),
+        ItemVariant(id="item-type-4", name="Bedding", volume=15.0),
+        ItemVariant(id="item-type-5", name="Kitchen Items", volume=10.0),
     ]
     for item in items:
         db.add(item)
     
-    # Add items to pickup point
+    # Add items to pickup point (some quantity of each type)
     items_at_pickup = [
-        ItemsAtPickupPoint(pickupPointID="pickup-1", itemVariantID="item-small", quantity=3),
-        ItemsAtPickupPoint(pickupPointID="pickup-1", itemVariantID="item-medium", quantity=2),
-        ItemsAtPickupPoint(pickupPointID="pickup-1", itemVariantID="item-large", quantity=1),
+        ItemsAtPickupPoint(pickupPointID="pickup-1", itemVariantID="item-type-1", quantity=4),
+        ItemsAtPickupPoint(pickupPointID="pickup-1", itemVariantID="item-type-2", quantity=3),
+        ItemsAtPickupPoint(pickupPointID="pickup-1", itemVariantID="item-type-3", quantity=2),
+        ItemsAtPickupPoint(pickupPointID="pickup-1", itemVariantID="item-type-4", quantity=1),
+        ItemsAtPickupPoint(pickupPointID="pickup-1", itemVariantID="item-type-5", quantity=2),
     ]
     for iap in items_at_pickup:
         db.add(iap)
@@ -189,37 +193,23 @@ async def test_routing_input_with_multiple_volunteers():
             print("\nERROR: routing_input is None!")
             return False
         
-        # Verify the output
+        # Print the actual JSON output
         print("\n" + "=" * 60)
-        print("ROUTING INPUT RESULTS:")
+        print("ROUTING INPUT (JSON):")
         print("=" * 60)
         
-        print(f"\n1. volunteer_ids ({len(routing_input.volunteer_ids)} volunteers):")
-        for vid in routing_input.volunteer_ids:
-            print(f"   - {vid}")
-        
-        print(f"\n2. car_caps ({len(routing_input.car_caps)} capacities):")
-        for i, cap in enumerate(routing_input.car_caps):
-            print(f"   - Volunteer {i+1}: {cap} units")
-        
-        print(f"\n3. dropoff_ids ({len(routing_input.dropoff_ids)} dropoffs):")
-        for did in routing_input.dropoff_ids:
-            print(f"   - {did}")
-        
-        print(f"\n4. distance_matrix ({len(routing_input.distance_matrix)} rows x {len(routing_input.distance_matrix[0]) if routing_input.distance_matrix else 0} cols):")
-        print("   (Travel time in minutes from each volunteer to each dropoff)")
-        for i, row in enumerate(routing_input.distance_matrix):
-            print(f"   Volunteer {i+1}: {[round(t, 2) for t in row]}")
-        
-        print(f"\n5. drops_matrix ({len(routing_input.drops_matrix)} x {len(routing_input.drops_matrix[0]) if routing_input.drops_matrix else 0}):")
-        print("   (Travel time in minutes between dropoff points)")
-        for i, row in enumerate(routing_input.drops_matrix):
-            print(f"   From dropoff {i+1}: {[round(t, 2) for t in row]}")
-        
-        print(f"\n6. item_volumes ({len(routing_input.item_volumes)} items):")
-        print(f"   {routing_input.item_volumes}")
-        total_volume = sum(routing_input.item_volumes)
-        print(f"   Total volume: {total_volume} units")
+        import json
+        output = {
+            "distance_matrix": [[round(t, 2) for t in row] for row in routing_input.distance_matrix],
+            "drops_matrix": [[round(t, 2) for t in row] for row in routing_input.drops_matrix],
+            "item_volumes": routing_input.item_volumes,
+            "car_caps": routing_input.car_caps,
+            "volunteer_ids": routing_input.volunteer_ids,
+            "dropoff_ids": routing_input.dropoff_ids,
+            "car_contents": routing_input.car_contents,
+            "item_id": routing_input.item_id
+        }
+        print(json.dumps(output, indent=2))
         
         # Validate structure
         print("\n" + "=" * 60)
@@ -227,6 +217,7 @@ async def test_routing_input_with_multiple_volunteers():
         print("=" * 60)
         
         errors = []
+        total_volume = sum(routing_input.item_volumes)
         
         # Check volunteer count matches
         if len(routing_input.volunteer_ids) != 3:
@@ -248,10 +239,24 @@ async def test_routing_input_with_multiple_volunteers():
                 errors.append(f"distance_matrix row {i} has {len(row)} columns, expected 5")
         
         # Check item volumes
-        # 3 small (5.0) + 2 medium (15.0) + 1 large (30.0) = 15 + 30 + 30 = 75
-        expected_volume = 3 * 5.0 + 2 * 15.0 + 1 * 30.0
+        # 4 type-1 (2.0) + 3 type-2 (5.0) + 2 type-3 (3.0) + 1 type-4 (15.0) + 2 type-5 (10.0)
+        # = 8 + 15 + 6 + 15 + 20 = 64
+        expected_volume = 4 * 2.0 + 3 * 5.0 + 2 * 3.0 + 1 * 15.0 + 2 * 10.0
         if abs(total_volume - expected_volume) > 0.01:
             errors.append(f"Expected total volume {expected_volume}, got {total_volume}")
+        
+        # Check car_contents - should have 3 volunteers, each with vector for 5 item types
+        if len(routing_input.car_contents) != 3:
+            errors.append(f"Expected 3 car_contents rows (one per volunteer), got {len(routing_input.car_contents)}")
+        
+        # Each car should have a vector of 5 zeros (one per item type)
+        for i, car in enumerate(routing_input.car_contents):
+            if len(car) != 5:
+                errors.append(f"car_contents[{i}] has {len(car)} elements, expected 5 (one per item type)")
+        
+        # Check item_id is set
+        if not routing_input.item_id:
+            errors.append("item_id is empty, expected an item variant ID")
         
         if errors:
             print("\n❌ VALIDATION FAILED:")
@@ -260,17 +265,6 @@ async def test_routing_input_with_multiple_volunteers():
             return False
         else:
             print("\n✅ ALL VALIDATIONS PASSED!")
-            print("\nThe routing input format is correct:")
-            print("""
-{
-  "distance_matrix": [[vol1→d1, vol1→d2...], [vol2→d1, vol2→d2...], [vol3→d1, vol3→d2...]],
-  "drops_matrix": [[d1→d1, d1→d2...], [d2→d1, d2→d2...], ...],
-  "item_volumes": [5.0, 5.0, 5.0, 15.0, 15.0, 30.0],
-  "car_caps": [30.0, 50.0, 40.0],
-  "volunteer_ids": ["volunteer-1", "volunteer-2", "volunteer-3"],
-  "dropoff_ids": ["dropoff-1", "dropoff-2", "dropoff-3", "dropoff-4", "dropoff-5"]
-}
-            """)
             return True
         
     finally:
