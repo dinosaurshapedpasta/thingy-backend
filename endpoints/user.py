@@ -68,3 +68,39 @@ def update_user_location(
     # TODO: Update user's location
     # TODO: Trigger pathfinding logic if needed
     return {"message": "Location updated", "user_id": current_user.id}
+
+
+@router.get("/{id}/items")
+def get_user_items(id: str, db: Session = Depends(get_db)):
+    """Get the items currently held by a user."""
+    user = crud.get_user(db, id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    items = crud.get_all_items_in_car(db, id)
+    return [{"id": item.itemVariantID, "quantity": item.quantity} for item in items]
+
+
+@router.patch("/{userID}/items/{itemID}")
+def set_user_item_quantity(
+    userID: str,
+    itemID: str,
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    """Set the quantity of an item in a user's car."""
+    user = crud.get_user(db, userID)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    quantity = data.get("quantity", 0)
+    result = crud.update_items_in_car(db, userID, itemID, quantity)
+    if not result:
+        # Create new record if it doesn't exist
+        crud.create_items_in_car(db, schemas.ItemsInCarCreate(
+            userID=userID,
+            itemVariantID=itemID,
+            quantity=quantity
+        ))
+    
+    return {"code": 200, "message": "Action carried out successfully."}

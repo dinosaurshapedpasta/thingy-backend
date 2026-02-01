@@ -311,6 +311,16 @@ def get_items_in_car(
     )
 
 
+def get_all_items_in_car(
+    db: Session, user_id: str
+) -> list[models.ItemsInCar]:
+    return (
+        db.query(models.ItemsInCar)
+        .filter(models.ItemsInCar.userID == user_id)
+        .all()
+    )
+
+
 def update_items_in_car(
     db: Session,
     user_id: str,

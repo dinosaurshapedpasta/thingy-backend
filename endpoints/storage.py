@@ -58,3 +58,28 @@ def get_storage_items(id: str, db: Session = Depends(get_db)):
         }
         for item in items
     ]
+
+
+@router.patch("/{storageID}/items/{itemID}")
+def set_storage_item_quantity(
+    storageID: str,
+    itemID: str,
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    """Set the quantity of an item at a storage point."""
+    storage_point = crud.get_storage_point(db, storageID)
+    if not storage_point:
+        raise HTTPException(status_code=404, detail="Storage point not found")
+    
+    quantity = data.get("quantity", 0)
+    result = crud.update_items_in_storage(db, storageID, itemID, quantity)
+    if not result:
+        # Create new record if it doesn't exist
+        crud.create_items_in_storage(db, schemas.ItemsInStorageCreate(
+            storageID=storageID,
+            itemVariantID=itemID,
+            quantity=quantity
+        ))
+    
+    return {"code": 200, "message": "Action carried out successfully."}

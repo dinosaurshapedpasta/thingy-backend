@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -5,10 +7,10 @@ from app.database import get_db, crud
 from app import schemas
 from app.auth import get_current_user as get_authenticated_user
 
-router = APIRouter(prefix="/pickuprequests", tags=["user"])
+router = APIRouter(prefix="/pickuprequests", tags=["pickup"])
 
 
-@router.get("/", response_model=List[schemas.PickupRequest])
+@router.get("/")
 def get_pickup_requests(
     db: Session = Depends(get_db),
     current_user=Depends(get_authenticated_user),
@@ -17,7 +19,7 @@ def get_pickup_requests(
     return crud.get_active_pickup_requests(db)
 
 
-@router.post("/", response_model=schemas.StoragePoint)
+@router.post("/")
 def create_pickup_request(
     pickup_request: schemas.PickupRequest,
     db: Session = Depends(get_db),
@@ -47,7 +49,7 @@ def delete_pickup_request(
     return {"detail": "Action successful"}
 
 
-@router.get("/{id}/responses", response_model=List[schemas.PickupResponse])
+@router.get("/{id}/responses")
 def get_pickup_request_responses(
     id: str,
     db: Session = Depends(get_db),
@@ -57,7 +59,8 @@ def get_pickup_request_responses(
     # if not current_user.is_manager:
     #     raise HTTPException(status_code=403, detail="Not authorised")
 
-    return crud.get_pickup_request_responses(db, id)
+    responses = crud.get_pickup_request_responses(db, id)
+    return [{"userID": r.userID, "response": "accept" if r.result == 1 else "deny"} for r in responses]
 
 
 @router.post("/{id}/accept")

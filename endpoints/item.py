@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db, crud
 from app import schemas
 
-router = APIRouter(prefix="/items", tags=["items"])
+router = APIRouter(prefix="/item", tags=["item"])
 
 @router.get("/{id}", response_model=schemas.ItemVariantRead)
 def get_item(id: str, db: Session = Depends(get_db)):

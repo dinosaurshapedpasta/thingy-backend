@@ -26,6 +26,31 @@ def get_pickup_point_items(id: str, db: Session = Depends(get_db)):
     return [{"id": item.itemVariantID, "quantity": item.quantity} for item in items]
 
 
+@router.patch("/{pickupID}/items/{itemID}")
+def set_pickup_item_quantity(
+    pickupID: str,
+    itemID: str,
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    """Set the quantity of an item at a pickup point."""
+    pickup_point = crud.get_pickup_point(db, pickupID)
+    if not pickup_point:
+        raise HTTPException(status_code=404, detail="Pickup Point not found")
+    
+    quantity = data.get("quantity", 0)
+    result = crud.update_items_at_pickup_point(db, pickupID, itemID, quantity)
+    if not result:
+        # Create new record if it doesn't exist
+        crud.create_items_at_pickup_point(db, schemas.ItemsAtPickupPointCreate(
+            pickupPointID=pickupID,
+            itemVariantID=itemID,
+            quantity=quantity
+        ))
+    
+    return {"code": 200, "message": "Action carried out successfully."}
+
+
 @router.patch("/{id}", response_model=schemas.PickupPointRead)
 def update_item(id: str, pickup_point_data: schemas.PickupPointCreate, db: Session = Depends(get_db)):
     """Change details about a pickup point."""
