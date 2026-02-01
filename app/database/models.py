@@ -1,4 +1,4 @@
-from sqlalchemy import String, Integer, Float, ForeignKey
+from sqlalchemy import String, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .config import Base
@@ -10,7 +10,7 @@ class User(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     karma: Mapped[int] = mapped_column(Integer, nullable=False)
-    maxVolume: Mapped[float] = mapped_column(Float, nullable=False)
+    maxVolume: Mapped[int] = mapped_column(Integer, nullable=False)
     userType: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
@@ -27,7 +27,7 @@ class ItemVariant(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    volume: Mapped[float] = mapped_column(Float, nullable=False)
+    volume: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class PickupPoint(Base):
@@ -61,7 +61,7 @@ class StoragePoint(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    maxVolume: Mapped[float] = mapped_column(Float, nullable=False)
+    maxVolume: Mapped[int] = mapped_column(Integer, nullable=False)
     location: Mapped[str] = mapped_column(String, nullable=False)
 
 

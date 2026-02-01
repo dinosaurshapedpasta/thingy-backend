@@ -1,11 +1,10 @@
 from pydantic import BaseModel
 
-
 class UserCreate(BaseModel):
     id: str
     name: str
     karma: int
-    maxVolume: float
+    maxVolume: int
     userType: int
 
 
@@ -25,7 +24,7 @@ class ApiKeyRead(ApiKeyCreate):
 class ItemVariantCreate(BaseModel):
     id: str
     name: str
-    volume: float
+    volume: int
 
 
 class ItemVariantRead(ItemVariantCreate):
@@ -50,7 +49,7 @@ class PickupRequest(BaseModel):
 class StoragePointCreate(BaseModel):
     id: str
     name: str
-    maxVolume: float
+    maxVolume: int
     location: str
 
 
